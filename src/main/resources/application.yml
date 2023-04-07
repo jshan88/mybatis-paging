@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    primary:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://localhost:3306/emp?serverTimezone=UTC&characterEncoding=UTF-8
+      username: emp
+      password: 1234
+      hikari:
+        connection-timeout: 20000
+        maximum-pool-size: 10
+        connection-test-query: SELECT 1
+mybatis:
+  type-aliases-package: com.example.pagingdemo.domain;com.example.pagingdemo.dto
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapper-locations: classpath:mybatis/mapper/**/*.xml
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%level] %logger : %msg%n"
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql: trace
+    com.zaxxer.hikari: trace
+    com.zaxxer.hikari.HikariConfig: debug
+#    org.springframework.orm.jpa: DEBUG
+    org.springframework: debug
+    org.springframework.transaction: DEBUG
