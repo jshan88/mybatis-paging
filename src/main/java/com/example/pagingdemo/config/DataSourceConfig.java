@@ -1,6 +1,5 @@
 package com.example.pagingdemo.config;
 
-import com.example.pagingdemo.config.MybatisInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;

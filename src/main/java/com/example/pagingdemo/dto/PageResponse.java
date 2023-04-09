@@ -14,11 +14,15 @@ import java.util.*;
 @JsonIgnoreProperties({"empty"})
 public class PageResponse<T> implements List<T> {
     private Long totalCount;
+    private Integer totalPage;
+    private Integer currentPage;
     private List<T> list = new ArrayList<>();
 
     @Builder
-    public PageResponse(Long totalCount, List<T> list) {
+    public PageResponse(Long totalCount, Integer totalPage, Integer currentPage, List<T> list) {
         this.totalCount = totalCount;
+        this.totalPage = totalPage;
+        this.currentPage = currentPage;
         this.list = list;
     }
 
@@ -109,31 +113,31 @@ public class PageResponse<T> implements List<T> {
 
     @Override
     public T remove(int index) {
-        return null;
+        return list.remove(index);
     }
 
     @Override
     public int indexOf(Object o) {
-        return 0;
+        return list.indexOf(o);
     }
 
     @Override
     public int lastIndexOf(Object o) {
-        return 0;
+        return list.lastIndexOf(o);
     }
 
     @Override
     public ListIterator<T> listIterator() {
-        return null;
+        return list.listIterator();
     }
 
     @Override
     public ListIterator<T> listIterator(int index) {
-        return null;
+        return list.listIterator(index);
     }
 
     @Override
     public List<T> subList(int fromIndex, int toIndex) {
-        return null;
+        return list.subList(fromIndex, toIndex);
     }
 }
