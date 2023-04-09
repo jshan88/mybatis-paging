@@ -4,6 +4,7 @@ import com.example.pagingdemo.dto.Page;
 import com.example.pagingdemo.dto.PageResponse;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -26,13 +27,13 @@ public class MybatisInterceptor implements Interceptor {
 
     // args[0] : MappedStatement, args[1] : Object (query parameter)
     private static final int MAPPED_STATEMENT_IDX = 0;
-    private static final int PARAMETER_IDX = 1;
+    private static final int QUERY_PARAMETER_IDX = 1;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
 
         MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[MAPPED_STATEMENT_IDX];
-        Object parameterObject = invocation.getArgs()[PARAMETER_IDX];
+        Object parameterObject = invocation.getArgs()[QUERY_PARAMETER_IDX];
 
         if(!(parameterObject instanceof Page)) {
             return invocation.proceed();
@@ -45,7 +46,7 @@ public class MybatisInterceptor implements Interceptor {
         String countSql = toTotalCountSql(originalSql);
         BoundSql countBoundSql = replaceBoundSql(mappedStatement, boundSql, countSql, parameterMappings, parameterObject);
         SqlSource countSqlSource = new NewSqlSource(countBoundSql);
-        invocation.getArgs()[MAPPED_STATEMENT_IDX] = replaceMappedStatement(mappedStatement, countSqlSource, replaceResultMap(mappedStatement, Long.class));
+        invocation.getArgs()[MAPPED_STATEMENT_IDX] = replaceMappedStatement(mappedStatement, countSqlSource, replaceResultMapsForCountQuery(mappedStatement, Long.class));
         List<Long> totalCounts = (List<Long>) invocation.proceed();
 
         String pagedSql = toPageSql(originalSql, parameterObject);
@@ -55,6 +56,24 @@ public class MybatisInterceptor implements Interceptor {
         List<Object> queryList = (List<Object>) invocation.proceed();
 
         return toPageResponse((Page) parameterObject, totalCounts.get(0), queryList);
+    }
+
+    private String toTotalCountSql(String originalSql) {
+        return new StringBuilder("SELECT COUNT(*) AS total_size FROM ( ")
+            .append(originalSql)
+            .append(" ) T")
+            .toString();
+    }
+
+    private String toPageSql(String originalSql, Object parameterObject) {
+        Page page = (Page) parameterObject;
+        int offset = (page.getPageNumber() - 1) * page.getPageSize();
+        int limit = page.getPageSize();
+
+        return new StringBuilder(originalSql)
+            .append(" LIMIT ").append(limit)
+            .append(" OFFSET ").append(offset)
+            .toString();
     }
 
     private PageResponse toPageResponse(Page page, Long totalCount, List list) {
@@ -72,26 +91,6 @@ public class MybatisInterceptor implements Interceptor {
             .build();
     }
 
-    private String toTotalCountSql(String sql) {
-        return new StringBuilder("SELECT COUNT(*) AS total_size FROM ( ")
-            .append(sql)
-            .append(" ) T")
-            .toString();
-    }
-
-    private String toPageSql(String sql, Object parameterObject) {
-        Page page = (Page) parameterObject;
-        int offset = (page.getPageNumber() - 1) * page.getPageSize();
-        int limit = page.getPageSize();
-
-        return new StringBuilder(sql)
-            .append(" LIMIT ")
-            .append(limit)
-            .append(" OFFSET ")
-            .append(offset)
-            .toString();
-    }
-
     private BoundSql replaceBoundSql(MappedStatement ms, BoundSql boundSql, String newSql, List<ParameterMapping> parameterMappings, Object parameterObject) {
         BoundSql newBoundSql = new BoundSql(ms.getConfiguration(), newSql, parameterMappings, parameterObject);
         for (ParameterMapping paramMapping : boundSql.getParameterMappings()) {
@@ -103,10 +102,11 @@ public class MybatisInterceptor implements Interceptor {
         return newBoundSql;
     }
 
-    private List<ResultMap> replaceResultMap(MappedStatement mappedStatement, Class<?> resultClass) {
-        ResultMap resultMap = new ResultMap.Builder(mappedStatement.getConfiguration(), mappedStatement.getId(), resultClass, new ArrayList<>()).build();
+    private List<ResultMap> replaceResultMapsForCountQuery(MappedStatement mappedStatement, Class<?> resultClass) {
+        ResultMap resultMap = new ResultMap.Builder(mappedStatement.getConfiguration(), mappedStatement.getId() + "-count", resultClass, new ArrayList<>()).build();
         List<ResultMap> resultMaps = new ArrayList<>();
         resultMaps.add(resultMap);
+
         return resultMaps;
     }
 
